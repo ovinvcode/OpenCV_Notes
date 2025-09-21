@@ -19,7 +19,7 @@ capture = cv.VideoCapture(0)
 
 #using a while loop it loops everyframe and displays it
 while True:
-    status, frame = vid.read()
+    status, frame = capture.read()
 
     cv.imshow("Window Title like Video", frame)
 
@@ -114,9 +114,7 @@ cv.imshow("text", blank)
 #1. grayscale
 gray = cv.cvtColor(img, cv.COLOR_BAYER_BG2GRAY)
 
-#2. blur
-blur = cv.GaussianBlur(img, (3,3), cv.BORDER_DEFAULT)
-#(3,3) < (7,7) more blur
+
 
 #3. Edge Cascade
 canny = cv.Canny(img, 120,120)
@@ -186,9 +184,94 @@ cv.imshow("flipped", flipped)
 # but we usually use RGB
 # we need to inverse the BGR to rGB
 
-# RGB HSV Grayscale ... are color spaces
+# RGB HSV Grayscale LAB ... are color spaces
 # array of same type color or smthng
+
+#BGR to Grayscale
 gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+#BGR to HSV
 hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+
+#BGR to LAB
 lab = cv.cvtColor(img, cv.COLOR_BGR2LAB)
 
+#BRG to RGB 
+rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+#cant convert from gray to hsv directly so first make into bgr then to hsv..
+
+
+
+## color channels
+
+# basically red, green, blue channels
+# images are these 3 channels
+
+# 1 to split image into colors
+img = cv.iimread("photo")
+
+b,g,r = cv.split(img)
+
+cv.imshow("blue", b)
+#this will show the blue parts as white and non blue as black in a grayscale photo
+
+# 2 to get merge images
+merged = cv.merge(b,g,r)
+cv.imshow("merged", merged)
+
+
+# 3 to get the split grayscale images to colorized splits 
+
+# first create a blank img
+blank = np.zeros(cv.shape[:2], dtype="uint8") 
+
+b,g,r = cv.split(img)
+blue = cv.merge([b,blank,blank])
+#this will show the blue split in blue color
+
+## BLUR
+
+# u ned a kernel to blur
+# a kernel is a grid basically that takes the average value to get the blur
+# 3,3 means a 3x3 grid
+# bigger kernel grid more blur
+
+## 1. Average blur
+blur = cv.Blur(img, (3,3), cv.BORDER_DEFAULT)
+
+# 2. Gaussian blur 
+# this method takes the values and gives them weights and give more of a natural blur
+g_blur = cv.GaussianBlur(img, (3,3), 0)
+
+# 3. Median blur
+# use low values 
+g_blur = cv.medianBlur(img, 3)
+
+# 4. Bilateral Blur
+# uses a radius smthng to determine values
+bilat = cv.bilateralFilter(img, 10, 20, 20)
+
+
+
+## BITWISE OPERATIONS
+
+blank = np.zeros((500,500),dtype="uint8")
+
+rectangle = cv.rectangle(blank, (0,0),(250,250), thickness=-1)
+circle = cv.circle(blank, (250,250), 50, thickness=-1)
+
+# AND of images basically
+# intersection like
+bitwise_and = cv.bitwise_and(rectangle,circle)
+
+# OR of images basically
+# merge like
+bitwise_or = cv.bitwise_or(rectangle,circle)
+
+# XOR of images
+# non contacting aareas
+bitwise_xor = cv.bitwise_xor(rectangle,circle)
+
+# NOT of image
+bitwise_not = cv.bitwise_not(rectangle,circle)
