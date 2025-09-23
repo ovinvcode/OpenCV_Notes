@@ -275,3 +275,114 @@ bitwise_xor = cv.bitwise_xor(rectangle,circle)
 
 # NOT of image
 bitwise_not = cv.bitwise_not(rectangle,circle)
+
+
+## MASKING 
+
+#get the image then
+
+#create blank to put mask shape
+blank = np.zeros(img.shape[:2], dtype="uint8")
+
+#the shape you want the mask to be
+mask_shape = cv.circle(blank,(img.shape[1]//2,img.shape[0]//2), 50, 255, thickness=-1)
+
+# merge the img and mask to get mask
+masked = cv.bitwise_and(img,img,mask=mask_shape)
+cv.imshow("masked image",masked)
+
+
+
+## Histogram
+# Step 1: Import necessary libraries
+import cv2 as cv
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Step 2: Load the image
+img = cv.imread("image1.jpg")
+
+# Step 3: Validate the image loading
+# If the path is incorrect or the file is corrupted, cv.imread() returns None.
+if img is None:
+    print("Error: Could not read the image. Check the file path.")
+else:
+    # Display the original image in a window titled "image".
+    cv.imshow("image", img)
+
+    # Step 4: Create a mask to define a Region of Interest (ROI)
+    # -----------------------------------------------------------
+    # A mask is a grayscale image where the white area defines the region we want to focus on, and the black area is ignored.
+    # First, create a blank black image with the same dimensions as the original image.
+    # img.shape[:2] gives the height and width of the image.
+    # 'dtype="uint8"' specifies the data type for an 8-bit unsigned integer (0-255).
+    blank = np.zeros(img.shape[:2], dtype="uint8")
+
+    # Now, draw a white rectangle on the blank image. This white area is our mask.
+    # - color: 255 (white)
+    # - thickness: -1 fills the rectangle.
+    # Here, we are defining a rectangle in a specific area.
+    masked_shape = cv.rectangle(blank, (100, 100), (400, 400), 255, -1)
+    cv.imshow("Mask", masked_shape)
+    
+    # Step 5: Convert the original image to grayscale
+    # -----------------------------------------------
+    # Histograms are often calculated on grayscale images to analyze pixel intensity.
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    cv.imshow("Grayscale Image", gray)
+
+    # Step 6: Apply the mask to the image (for visualization)
+    # ----------------------------------------------------------
+    # cv.bitwise_and performs a bitwise AND operation between the image and itself,
+    # but only in the region defined by the mask. This effectively crops out
+    # everything outside the white area of the mask.
+    # This step is primarily for displaying what part of the image we are analyzing.
+    masked_color = cv.bitwise_and(img, img, mask=masked_shape)
+    cv.imshow("Masked Color Image", masked_color)
+
+    # Step 7: Calculate and plot the histogram for the masked grayscale image
+    # -----------------------------------------------------------------------
+    # cv.calcHist([images], [channels], mask, [histSize], [ranges])
+    # - [gray]: The source image (must be in a list).
+    # - [0]: The channel index to compute the histogram for (0 for grayscale).
+    # - masked_shape: The mask. The histogram is only computed for pixels where the mask is non-zero.
+    # - [256]: The number of bins in the histogram (0 to 255).
+    # - [0, 256]: The range of pixel values.
+    gray_hist = cv.calcHist([gray], [0], masked_shape, [256], [0, 256])
+
+    plt.figure() # Creates a new figure for plotting.
+    plt.title("Masked Grayscale Histogram")
+    plt.xlabel("Bins (Pixel Intensity)")
+    plt.ylabel("# of Pixels")
+    plt.plot(gray_hist)
+    plt.xlim([0, 256]) # Set the x-axis limits to match the pixel value range.
+    plt.show() # Display the plot.
+    
+    # Step 8: Calculate and plot the color histogram for the masked image
+    # -------------------------------------------------------------------
+    plt.figure()
+    plt.title("Masked Color Histogram (BGR)")
+    plt.xlabel("Bins (Pixel Intensity)")
+    plt.ylabel("# of Pixels")
+    
+    # Define the colors for plotting. OpenCV uses BGR order by default, not RGB.
+    colors = ("b", "g", "r") 
+    
+    # Loop through each color channel (Blue, Green, Red).
+    # enumerate provides both the index (i) and the value (col).
+    for i, col in enumerate(colors):
+        # Calculate the histogram for the current channel (i) of the original color image.
+        # We use the same mask to analyze the same region.
+        hist = cv.calcHist([img], [i], masked_shape, [256], [0, 256])
+        plt.plot(hist, color=col)
+        plt.xlim([0, 256])
+    
+    plt.show()
+
+    # Step 9: Clean up
+    # ----------------
+    # cv.waitKey(0) waits indefinitely for a key press. This keeps the
+    # OpenCV windows open until you press any key.
+    cv.waitKey(0)
+    # cv.destroyAllWindows() closes all the windows created by OpenCV.
+    cv.destroyAllWindows()
