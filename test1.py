@@ -386,3 +386,256 @@ else:
     cv.waitKey(0)
     # cv.destroyAllWindows() closes all the windows created by OpenCV.
     cv.destroyAllWindows()
+
+
+## Thresholding
+
+gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+#simple thresholding
+#   cv.threshold(src, thresh_value, max_value, type)
+# - src: The source grayscale image.
+# - thresh_value (150): The threshold. Any pixel value above 150 will be changed.
+# - max_value (255): The value assigned to pixels that are above the threshold.
+# - cv.THRESH_BINARY: The type of thresholding. If pixel > 150, it's set to 255 (white).
+#   Otherwise, it's set to 0 (black).
+#   It returns the threshold value used and the thresholded image.
+threshold_value, thresh = cv.threshold(gray, 150, 255, cv.THRESH_BINARY)
+cv.imshow('Simple Threshold', thresh)
+
+#inverse gives all other pixels
+# This is the opposite of the previous method.
+# cv.THRESH_BINARY_INV: If pixel > 150, it's set to 0 (black).
+# Otherwise, it's set to 255 (white).
+threshold, thresh_inv = cv.threshold(gray, 150, 255, cv.THRESH_BINARY_INV)
+cv. imshow('SimpleThresholded', thresh)
+
+#adaptive thesholding
+# cv.adaptiveThreshold(src, maxValue, adaptiveMethod, thresholdType, blockSize, C)
+# - src: The source grayscale image.
+# - maxValue (255): The value assigned to pixels that pass the condition (white).
+# - adaptiveMethod: How the local threshold is calculated.
+#   - cv.ADAPTIVE_THRESH_GAUSSIAN_C: Threshold is a weighted sum (Gaussian) of the neighborhood values.
+#   - cv.ADAPTIVE_THRESH_MEAN_C: Threshold is the mean of the neighborhood area.
+# - thresholdType: Must be THRESH_BINARY or THRESH_BINARY_INV.
+# - blockSize (11): The size of the neighborhood area (e.g., 11x11 pixels). Must be an odd number.
+# - C (9): A constant subtracted from the calculated mean or weighted sum. It's a fine-tuning parameter.
+adaptive_thesholding = cv.adaptiveThreshold(gray,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
+cv.imshow("adaptive thesholding", adaptive_thesholding)
+
+
+
+## face detection 
+
+# using haar_xml
+import cv2 as cv
+import numpy as np
+
+def fit_to_screen(image, max_width=1280, max_height=720):
+    """
+    Resizes an image to fit within max_width and max_height, preserving aspect ratio.
+    """
+    h, w = image.shape[:2]
+    if w <= max_width and h <= max_height:
+        return image, 1.0 # Return original image and a scale ratio of 1.0
+
+    # Calculate the scaling factor
+    ratio = min(max_width / float(w), max_height / float(h))
+    
+    # Compute the new dimensions and resize
+    new_dimensions = (int(w * ratio), int(h * ratio))
+    resized_image = cv.resize(image, new_dimensions, interpolation=cv.INTER_AREA)
+    
+    return resized_image
+
+# --- MAIN SCRIPT ---
+
+# Tip: Use a raw string (r"...") or forward slashes for file paths to avoid errors.
+# path = r"M:\learn code\opencv\image6.jpg"
+path = "M:/learn code/opencv/image3.jpg"
+
+img = cv.imread(path)
+
+# Check if the image was loaded correctly
+if img is None:
+    print(f"Error: Could not read the image at path: {path}")
+else:
+    # 1. RESIZE THE IMAGE FIRST!
+    # This is the most important step to fix the display issue.
+    img_resized = fit_to_screen(img, max_width=960, max_height=720)
+
+    # 2. Perform operations on the RESIZED image
+    gray = cv.cvtColor(img_resized, cv.COLOR_BGR2GRAY)
+    
+    # Load the Haar Cascade classifier
+    haar_cascade = cv.CascadeClassifier("haar_face_default.xml")
+    if haar_cascade.empty():
+        print("Error: Could not load face cascade classifier. Make sure 'haar_face_default.xml' is in the correct directory.")
+    else:
+        # Detect faces in the resized grayscale image
+        faces_rect = haar_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=1)
+
+        print(f"Number of faces found = {len(faces_rect)}")
+
+        # 3. Draw rectangles on the RESIZED color image
+        for (x, y, w, h) in faces_rect:
+            cv.rectangle(img_resized, (x, y), (x + w, y + h), (0, 255, 0), thickness=2)
+
+        # 4. Display the FINAL resized image
+        cv.imshow("Detected Faces", img_resized)
+
+        cv.waitKey(0)
+        cv.destroyAllWindows() 
+
+
+
+
+
+
+
+## face RECOGNITION
+
+import os
+import cv2 as cv
+import numpy as np
+
+# A list of people's names, matching the directory names
+people = ['anne', 'sydney', "rebecca"]
+
+# This section is redundant since you have 'people' hardcoded.
+# If you want to use the list from the directory, replace 'people' with 'p'.
+# p = []
+# for i in os.listdir(r"M:\learn code\opencv\people"):
+#     p.append(i)
+# print(p)
+
+dir = r"M:\learn code\opencv\people"
+
+# Load the Haar Cascade classifier for face detection
+haar_cascade = cv.CascadeClassifier("haar_face_default.xml")
+
+features = []
+labels = []
+
+def create_train():
+    # Loop over each person's folder
+    for person in people:
+        path = os.path.join(dir, person)
+        label = people.index(person)  # Get the numeric label for the person
+
+        # Loop over each image in the person's folder
+        for img_name in os.listdir(path):
+            img_path = os.path.join(path, img_name)
+
+            # Read the image and convert it to grayscale
+            img_array = cv.imread(img_path)
+            if img_array is None:
+                continue # Skip if image is not loaded correctly
+            gray = cv.cvtColor(img_array, cv.COLOR_BGR2GRAY)
+
+            # Detect faces in the grayscale image
+            faces_rect = haar_cascade.detectMultiScale(gray, scaleFactor=1.15, minNeighbors=4)
+
+            # Loop through each detected face
+            for (x, y, w, h) in faces_rect:
+                # Crop the face region of interest (ROI)
+                faces_roi = gray[y:y+h, x:x+w]
+                
+                # Append the cropped face ROI and the corresponding label
+                # This is the crucial correction.
+                features.append(faces_roi)
+                labels.append(label)
+
+                # The following two lines were for visualization and should be outside the training loop if used
+                # cv.rectangle(gray, (x, y), (x + w, y + h), (0, 0, 0), thickness=2)
+                # cv.imshow(f"{y+x+h+w}n",gray)
+
+# Execute the function to build our training dataset
+print("--- Starting Training Data Creation ---")
+create_train()
+print("--- Training Data Creation Complete ---")
+print("--- Starting Model Training ---")
+
+# Convert the feature and label lists to NumPy arrays, as required by OpenCV
+# We use dtype='object' for features because the face ROIs might have different sizes.
+features = np.array(features, dtype="object")
+labels = np.array(labels)
+
+# Initialize the LBPH Face Recognizer
+face_recognizer = cv.face.LBPHFaceRecognizer_create()
+
+# Train the recognizer with our features and labels
+face_recognizer.train(features, labels)
+
+# Save the trained model to a file for later use
+face_recognizer.save("face_trained.yml")
+
+# Optional: Save the features and labels arrays
+# This can be useful for debugging or analysis later.
+np.save("features.npy", features)
+np.save("labels.npy", labels)
+
+print("--- Model Trained and Saved Successfully! --- ✅")
+print(f"Number of features trained: {len(features)}")
+print(f"Number of labels trained: {len(labels)}")
+
+
+# in another file
+
+import numpy as np
+import cv2 as cv
+
+# This list MUST be in the same order as in your training script.
+people = ['anne', 'sydney', "rebecca"]
+
+# Load the Haar Cascade for face detection (finding the face)
+haar_cascade = cv.CascadeClassifier("haar_face_default.xml")
+
+# We don't need the features and labels here. The intelligence is in the .yml file.
+# features = np.load("features.npy")
+# labels = np.load("labels.npy")
+
+# --- Load the Trained Recognizer ---
+# Create the recognizer instance
+face_recognizer = cv.face.LBPHFaceRecognizer_create()
+# Load the trained state from the file you saved earlier
+face_recognizer.read("face_trained.yml")
+
+# Load a new image for recognition
+# Using a raw string (r"...") or forward slashes is safer for file paths.
+img = cv.imread(r"M:\learn code\opencv\people\p4.jpeg")
+if img is None:
+    print("Error: Could not load the image. Check the file path.")
+else:
+    # Convert the image to grayscale for detection
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    cv.imshow("Person", gray)
+
+# Detect faces in the grayscale image
+    faces_rect = haar_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
+
+    # Loop through every face found in the image
+    for (x, y, w, h) in faces_rect:
+        # Crop out the face from the image (Region of Interest)
+        faces_roi = gray[y:y+h, x:x+w]
+
+        # --- PREDICTION ---
+        # Ask the recognizer to predict the face
+        label, confidence = face_recognizer.predict(faces_roi)
+        
+        # Print the prediction to the console
+        print(f"Predicted Label = {people[label]} with a confidence of {confidence:.2f}")
+
+        # --- Draw on the Image ---
+        # Write the predicted person's name above their face
+        # Corrected: Place text relative to the face, not at a fixed spot.
+        cv.putText(img, str(people[label]), (x, y - 10), cv.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 0), 2)
+        
+        # Draw a rectangle around the face
+        cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    # Display the final image with the predictions
+    cv.imshow("Detected Face", img)
+
+    cv.waitKey(0)
+    cv.destroyAllWindows()
